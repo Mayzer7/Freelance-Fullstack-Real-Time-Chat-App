@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Camera, Mail, User } from "lucide-react";
+import { Camera, Mail, User, LogOut } from "lucide-react";
 
 const ProfilePage = () => {
-  const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+  const { logout, authUser, isUpdatingProfile, updateProfile } = useAuthStore();
   const [selectedImg, setSelectedImg] = useState(null);
 
   const handleImageUpload = async (e) => {
@@ -93,6 +93,13 @@ const ProfilePage = () => {
               <div className="flex items-center justify-between py-2">
                 <span>Account Status</span>
                 <span className="text-green-500">Active</span>
+              </div>
+
+              <div className="flex items-center justify-center py-2">
+                <button className="flex gap-2 items-center bg-red-600 text-white text-lg font-bold py-3 px-6 rounded-lg border border-red-700 hover:bg-red-500 transition duration-300" onClick={logout}>
+                  <LogOut className="w-5 h-5"/>
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
               </div>
             </div>
           </div>
