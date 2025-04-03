@@ -42,7 +42,7 @@ function MainPage() {
           className="btn btn-circle btn-ghost"
           title="Change theme"
         >
-          <Palette className="w-5 h-5" />
+        <Palette className="w-10 h-10" />
         </button>
         {showThemes && (
           <div className="absolute right-0 mt-2 p-4 bg-base-200 rounded-xl shadow-xl w-[280px]">

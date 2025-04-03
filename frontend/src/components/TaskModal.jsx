@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { createTask } from '../api/posts';
 
 export function TaskModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -9,11 +10,31 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
     deadline: '',
     skills: [],
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
-    onClose();
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await createTask(formData);
+      onSubmit(response);
+      setFormData({
+        title: '',
+        description: '',
+        budget: 0,
+        deadline: '',
+        skills: [],
+      });
+      onClose();
+    } catch (error) {
+      setError('Failed to create task. Please try again.');
+      console.error('Error creating task:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -30,6 +51,12 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
         
         <h2 className="text-2xl font-bold text-base-content mb-6">Новое задание</h2>
         
+        {error && (
+          <div className="bg-error/10 text-error p-4 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-base-content/70 mb-1">
@@ -94,7 +121,7 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
               type="text"
               className="input input-bordered w-full"
               value={formData.skills.join(', ')}
-              onChange={(e) => setFormData({ ...formData, skills: e.target.value.split(',').map(s => s.trim()) })}
+              onChange={(e) => setFormData({ ...formData, skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
               placeholder="Например: React, TypeScript, Node.js"
             />
           </div>
@@ -102,8 +129,9 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
           <button
             type="submit"
             className="btn btn-primary w-full"
+            disabled={isSubmitting}
           >
-            Опубликовать задание
+            {isSubmitting ? 'Публикация...' : 'Опубликовать задание'}
           </button>
         </form>
       </div>

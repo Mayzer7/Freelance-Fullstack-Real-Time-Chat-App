@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { TaskModal } from '../components/TaskModal';
 import { useThemeStore } from "../store/useThemeStore";
 import { THEMES } from "../constants";
+import { getTasks } from '../api/posts';
 
 const freelancers = [
   {
@@ -33,6 +34,8 @@ function PostTask() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [showThemes, setShowThemes] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const { theme, setTheme } = useThemeStore();
 
   useEffect(() => {
@@ -41,21 +44,29 @@ function PostTask() {
 
   const loadTasks = async () => {
     try {
+      setIsLoading(true);
+      setError('');
       const tasksData = await getTasks();
       setTasks(tasksData);
     } catch (error) {
       console.error('Failed to load tasks:', error);
+      setError('Failed to load tasks. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleCreateTask = async (taskData) => {
-    try {
-      await createTask(taskData);
-      await loadTasks(); // Reload tasks after creating new one
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Failed to create task:', error);
-    }
+    await loadTasks(); // Reload tasks after creating new one
+    setIsModalOpen(false);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('ru-RU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -73,7 +84,7 @@ function PostTask() {
           className="btn btn-circle btn-ghost"
           title="Change theme"
         >
-          <Palette className="w-5 h-5" />
+          <Palette className="w-10 h-10" />
         </button>
         {showThemes && (
           <div className="absolute right-0 mt-2 p-4 bg-base-200 rounded-xl shadow-xl w-[280px]">
@@ -172,38 +183,64 @@ function PostTask() {
 
       {/* Tasks Section */}
       <section className="container mx-auto px-6 py-8">
-        {tasks.map((task) => (
-          <div key={task.id} className="bg-base-200 p-6 rounded-xl mb-8">
-            <div className="flex items-center mb-4">
-              {task.author.avatar ? (
-                <img 
-                  src={`http://localhost:8000${task.author.avatar}`}  
-                  alt={task.author.username} 
-                  className="w-10 h-10 rounded-full mr-4" 
-                />
-              ) : (
-                <div className="w-10 h-10 bg-base-300 rounded-full mr-4 flex items-center justify-center">
-                  {task.author.username[0].toUpperCase()}
-                </div>
-              )}
-              <Link to={`/profile/${task.author.username}`} className="hover:text-primary">
-                <span className="font-semibold">{task.author.username}</span>
-              </Link>
-            </div>
-            <h2 className="text-2xl font-bold mb-6">{task.title}</h2>
-            <p className="text-base-content/70 mb-6">{task.description}</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {task.skills.map((skill, index) => (
-                  <span key={index} className="bg-primary/20 text-primary px-4 py-1 rounded-full">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-              <span className="text-base-content/70">Бюджет: {task.budget} ₽</span>
-            </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="loading loading-spinner loading-lg"></div>
           </div>
-        ))}
+        ) : error ? (
+          <div className="bg-error/10 text-error p-4 rounded-lg">
+            {error}
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="text-center py-12 text-base-content/70">
+            Пока нет доступных заданий
+          </div>
+        ) : (
+          tasks.map((task) => (
+            <div key={task._id} className="bg-base-200 p-6 rounded-xl mb-8">
+              <div className="flex items-center mb-4">
+                {task.author.profilePic ? (
+                  <img 
+                    src={task.author.profilePic}
+                    alt={task.author.fullName} 
+                    className="w-10 h-10 rounded-full mr-4 object-cover" 
+                  />
+                ) : (
+                  <div className="w-10 h-10 bg-base-300 rounded-full mr-4 flex items-center justify-center">
+                    {task.author.fullName[0].toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <Link to={`/profile/${task.author._id}`} className="hover:text-primary">
+                    <span className="font-semibold">{task.author.fullName}</span>
+                  </Link>
+                  <p className="text-sm text-base-content/70">
+                    {formatDate(task.createdAt)}
+                  </p>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-6">{task.title}</h2>
+              <p className="text-base-content/70 mb-6">{task.description}</p>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {task.skills.map((skill, index) => (
+                    <span key={index} className="bg-primary/20 text-primary px-4 py-1 rounded-full text-sm">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+                <div className="space-y-2 text-right">
+                  <span className="text-base-content/70 block">
+                    Бюджет: {task.budget.toLocaleString('ru-RU')} ₽
+                  </span>
+                  <span className="text-base-content/70 block">
+                    Дедлайн: {formatDate(task.deadline)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
 
         <h3 className="text-xl font-semibold mb-6">Рекомендуемые исполнители</h3>
         <div className="grid md:grid-cols-3 gap-6">
