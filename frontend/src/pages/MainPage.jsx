@@ -74,53 +74,7 @@ function MainPage() {
         )}
       </div>
 
-      {/* Secondary Navigation */}
-      <nav className="bg-base-100 border-b border-base-200">
-        <div className="container mx-auto px-6 py-4 relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              
-            </div>
-            
-            {/* Mobile menu button */}
-            <button 
-              className="md:hidden p-2 hover:bg-base-200 rounded-lg transition-colors"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#" className="hover:text-primary transition-colors">
-                Найти работу
-              </a>
-              <Link to="/post-task" className="hover:text-primary transition-colors">
-                Разместить задание
-              </Link>
-              <a href="#" className="hover:text-primary transition-colors">
-              
-              </a>
-            </div>
-          </div>
-
-          {/* Mobile Navigation */}
-          <div className={`md:hidden absolute top-full left-0 right-0 bg-base-200 shadow-lg transition-all duration-300 ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-            <div className="flex flex-col space-y-4 p-6">
-              <a href="#" className="hover:text-primary transition-colors">
-                Найти работу
-              </a>
-              <Link to="/post-task" className="hover:text-primary transition-colors">
-                Разместить задание
-              </Link>
-              <a href="#" className="hover:text-primary transition-colors">
-                FAQ
-              </a>
-              <AuthButton />
-            </div>
-          </div>
-        </div>
-      </nav>
+      
 
       {/* Hero Section */}
       <section className="container mx-auto px-6 py-20">

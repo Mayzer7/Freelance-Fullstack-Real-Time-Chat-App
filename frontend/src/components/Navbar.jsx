@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, User, MessageCircle, Trophy } from "lucide-react";
+import { LogOut, MessageSquare, Settings, User, MessageCircle, Trophy, PencilLine, ClipboardList } from "lucide-react";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
@@ -22,6 +22,28 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to={"/post-task"}
+              className={`
+              btn btn-sm gap-2 transition-colors
+              
+              `}
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span className="hidden sm:inline">Найти Работу</span>
+            </Link>
+
+            <Link
+              to={"/post-task"}
+              className={`
+              btn btn-sm gap-2 transition-colors
+              
+              `}
+            >
+              <PencilLine className="w-4 h-4" />
+              <span className="hidden sm:inline">Разместить Задание</span>
+            </Link>
+
             <Link
               to={"/messanger"}
               className={`
