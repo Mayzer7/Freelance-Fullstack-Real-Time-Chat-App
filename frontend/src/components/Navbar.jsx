@@ -86,19 +86,19 @@ const Navbar = () => {
 
             <Link to={"/messanger"} className={`btn btn-sm gap-2 transition-colors`}>
               <MessageCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Messanger</span>
+              <span className="hidden sm:inline">Мессенджер</span>
             </Link>
 
             <Link to={"/settings"} className={`btn btn-sm gap-2 transition-colors`}>
               <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">Настройки</span>
             </Link>
 
             {authUser && (
               <>
                 <Link to={"/profile"} className={`btn btn-sm gap-2`}>
                   <User className="size-5" />
-                  <span className="hidden sm:inline">Profile</span>
+                  <span className="hidden sm:inline">Профиль</span>
                 </Link>
               </>
             )}

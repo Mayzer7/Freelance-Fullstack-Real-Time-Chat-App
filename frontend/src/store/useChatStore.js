@@ -9,6 +9,7 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  typingUsers: [],
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -33,6 +34,7 @@ export const useChatStore = create((set, get) => ({
       set({ isMessagesLoading: false });
     }
   },
+
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     try {
@@ -65,4 +67,15 @@ export const useChatStore = create((set, get) => ({
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
+
+  // 👇 Добавляем печатает
+  addTypingUser: (userId) =>
+    set((state) => ({
+      typingUsers: [...new Set([...state.typingUsers, userId])],
+    })),
+
+  removeTypingUser: (userId) =>
+    set((state) => ({
+      typingUsers: state.typingUsers.filter((id) => id !== userId),
+    })),
 }));

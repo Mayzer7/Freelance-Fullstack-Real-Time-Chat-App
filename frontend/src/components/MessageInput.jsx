@@ -1,24 +1,25 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
+
+let typingTimeout;
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, selectedUser } = useChatStore();
+  const { socket, authUser } = useAuthStore();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (!file.type.startsWith("image/")) {
+    if (!file?.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
-  
-    // Выводим размер изображения в консоль
-    console.log("Image file size: ", file.size, "bytes");
-  
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
@@ -34,28 +35,42 @@ const MessageInput = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
-  
+
     try {
-      // Если изображение выбрано, выводим его размер в консоль
-      if (imagePreview) {
-        const image = imagePreview.split(',')[1]; // Убираем часть data URI
-        const imageSize = (image.length * 3) / 4; // Длина строки base64 - это приближенная оценка размера в байтах
-        console.log("Sending image with size:", imageSize, "bytes");
-      }
-  
       await sendMessage({
         text: text.trim(),
         image: imagePreview,
       });
-  
-      // Clear form
+
+      // Очищаем
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      sendStopTyping(); // после отправки сообщения - стоп печатание
     } catch (error) {
       console.error("Failed to send message:", error);
     }
   };
+
+  // ----------- TYPING LOGIC ----------
+  const sendTyping = () => {
+    if (!selectedUser || !socket) return;
+    socket.emit("typing", { receiverId: selectedUser._id });
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      sendStopTyping();
+    }, 1500); // пользователь перестаёт печатать после 1.5 сек
+  };
+
+  const sendStopTyping = () => {
+    if (!selectedUser || !socket) return;
+    socket.emit("stopTyping", { receiverId: selectedUser._id });
+  };
+
+  useEffect(() => {
+    return () => clearTimeout(typingTimeout); // очистка по размонтированию
+  }, []);
 
   return (
     <div className="p-4 w-full">
@@ -69,8 +84,7 @@ const MessageInput = () => {
             />
             <button
               onClick={removeImage}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300
-              flex items-center justify-center"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300 flex items-center justify-center"
               type="button"
             >
               <X className="size-3" />
@@ -86,7 +100,10 @@ const MessageInput = () => {
             className="w-full input input-bordered rounded-lg input-sm sm:input-md"
             placeholder="Type a message..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              sendTyping();
+            }}
           />
           <input
             type="file"
@@ -95,11 +112,11 @@ const MessageInput = () => {
             ref={fileInputRef}
             onChange={handleImageChange}
           />
-
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle
-                     ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
+            className={`hidden sm:flex btn btn-circle ${
+              imagePreview ? "text-emerald-500" : "text-zinc-400"
+            }`}
             onClick={() => fileInputRef.current?.click()}
           >
             <Image size={20} />
@@ -116,4 +133,5 @@ const MessageInput = () => {
     </div>
   );
 };
+
 export default MessageInput;
