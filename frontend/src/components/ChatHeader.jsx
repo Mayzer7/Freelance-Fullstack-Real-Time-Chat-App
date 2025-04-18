@@ -1,6 +1,8 @@
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
+import { formatLastSeen } from "../utils/formatLastSeen";
+
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser, typingUsers } = useChatStore();
@@ -24,11 +26,13 @@ const ChatHeader = () => {
           <div>
             <h3 className="font-medium">{selectedUser.fullName}</h3>
             <p className="text-sm text-base-content/70">
-              {isTyping ? "Печатает..." : isOnline ? "Онлайн" : "Офлайн"}
+              {isTyping
+                ? "Печатает..."
+                : isOnline
+                ? "Онлайн"
+                : formatLastSeen(selectedUser.lastSeen)}
             </p>
           </div>
-
-          
         </div>
 
         {/* Close button */}
@@ -39,4 +43,5 @@ const ChatHeader = () => {
     </div>
   );
 };
+
 export default ChatHeader;

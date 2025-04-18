@@ -75,8 +75,13 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
+export const logout = async (req, res) => {
   try {
+    // ✅ Обновляем lastSeen перед logout
+    if (req.user?._id) {
+      await User.findByIdAndUpdate(req.user._id, { lastSeen: new Date() }); 
+    }
+
     res.cookie("jwt", "", { maxAge: 0 });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {

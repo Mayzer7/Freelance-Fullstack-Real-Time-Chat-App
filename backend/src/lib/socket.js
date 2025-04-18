@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import http from "http";
 import express from "express";
 
+import User from "../models/user.model.js";
+
 const app = express();
 const server = http.createServer(app);
 
@@ -41,10 +43,20 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("A user disconnected", socket.id);
+  
     delete userSocketMap[userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  
+    // ✅ Обновляем lastSeen в MongoDB
+    if (userId) {
+      try {
+        await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
+      } catch (error) {
+        console.error("Ошибка при обновлении lastSeen:", error.message);
+      }
+    }
   });
 });
 
