@@ -73,9 +73,11 @@ const Sidebar = () => {
 
               <div className="hidden lg:block text-left min-w-0">
                 <div className="font-medium truncate">{user.fullName}</div>
-                <div className="text-sm text-zinc-400">
+                <div className="text-sm text-zinc-400 truncate max-w-[150px]">
                   {isTyping
                     ? "Печатает..."
+                    : user.lastMessage
+                    ? user.lastMessage.text || "📷 Фото"
                     : onlineUsers.includes(user._id)
                     ? "Онлайн"
                     : "Офлайн"}

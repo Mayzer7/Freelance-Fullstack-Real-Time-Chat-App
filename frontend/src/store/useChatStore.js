@@ -15,13 +15,13 @@ export const useChatStore = create((set, get) => ({
     set({ isUsersLoading: true });
     try {
       const res = await axiosInstance.get("/messages/users");
-      set({ users: res.data });
+      set({ users: res.data }); // теперь каждый user имеет .lastMessage
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Error fetching users");
     } finally {
       set({ isUsersLoading: false });
     }
-  },
+  },    
 
   getMessages: async (userId) => {
     set({ isMessagesLoading: true });
@@ -36,30 +36,62 @@ export const useChatStore = create((set, get) => ({
   },
 
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
+    const { selectedUser, messages, users } = get();
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: [...messages, res.data] });
+      const res = await axiosInstance.post(
+        `/messages/send/${selectedUser._id}`,
+        messageData
+      );
+      const newMessage = res.data;
+  
+      // Обновляем messages
+      set({ messages: [...messages, newMessage] });
+  
+      // Обновляем lastMessage у соответствующего пользователя
+      const updatedUsers = users.map((user) => {
+        if (
+          user._id === newMessage.senderId ||
+          user._id === newMessage.receiverId
+        ) {
+          return { ...user, lastMessage: newMessage };
+        }
+        return user;
+      });
+  
+      set({ users: updatedUsers });
     } catch (error) {
       toast.error(error.response.data.message);
     }
   },
 
   subscribeToMessages: () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
-
+  
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
-
-      set({
-        messages: [...get().messages, newMessage],
+      const { users, selectedUser, messages } = get();
+  
+      // Если сообщение связано с текущим диалогом, добавим его в сообщения
+      if (
+        selectedUser &&
+        (newMessage.senderId === selectedUser._id || newMessage.receiverId === selectedUser._id)
+      ) {
+        set({ messages: [...messages, newMessage] });
+      }
+  
+      // Обновляем lastMessage у соответствующего пользователя в списке
+      const updatedUsers = users.map((user) => {
+        if (
+          user._id === newMessage.senderId ||
+          user._id === newMessage.receiverId
+        ) {
+          return { ...user, lastMessage: newMessage };
+        }
+        return user;
       });
+  
+      set({ users: updatedUsers });
     });
-  },
+  },  
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
@@ -67,6 +99,9 @@ export const useChatStore = create((set, get) => ({
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
+
+  setMessages: (messages) => set({ messages }),
+  setUsers: (users) => set({ users }),
 
   // 👇 Добавляем печатает
   addTypingUser: (userId) =>
