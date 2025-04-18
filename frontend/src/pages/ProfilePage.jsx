@@ -9,16 +9,9 @@ const ProfilePage = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.readAsDataURL(file);
-
-    reader.onload = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
-    };
+  
+    setSelectedImg(URL.createObjectURL(file)); // чтобы отобразить превью
+    await updateProfile(file); // передаём сам файл
   };
 
   return (

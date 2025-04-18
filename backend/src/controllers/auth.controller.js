@@ -92,14 +92,18 @@ export const logout = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { profilePic } = req.body;
     const userId = req.user._id;
 
-    if (!profilePic) {
-      return res.status(400).json({ message: "Profile pic is required" });
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    // файл в памяти -> base64
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    const uploadResponse = await cloudinary.uploader.upload(dataURI);
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePic: uploadResponse.secure_url },
