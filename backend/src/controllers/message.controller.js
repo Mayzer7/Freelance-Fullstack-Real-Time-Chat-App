@@ -8,10 +8,11 @@ export const getUsersForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
+    // Находим всех пользователей, кроме залогиненного
     const users = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
 
-    // Получаем последние сообщения
-    const lastMessages = await Promise.all(
+    // Получаем последние сообщения для каждого пользователя
+    const usersWithLastMessage = await Promise.all(
       users.map(async (user) => {
         const lastMessage = await Message.findOne({
           $or: [
@@ -29,7 +30,16 @@ export const getUsersForSidebar = async (req, res) => {
       })
     );
 
-    res.status(200).json(lastMessages);
+    // Сортируем пользователей по дате последнего сообщения (сначала самые новые)
+    usersWithLastMessage.sort((a, b) => {
+      if (!a.lastMessage && !b.lastMessage) return 0; // Если у обоих нет сообщений - не меняем порядок
+      if (!a.lastMessage) return 1; // b выше, если у a нет сообщений
+      if (!b.lastMessage) return -1; // a выше, если у b нет сообщений
+
+      return b.lastMessage.createdAt - a.lastMessage.createdAt; // Сортируем по убыванию даты
+    });
+
+    res.status(200).json(usersWithLastMessage);
   } catch (error) {
     console.error("Error in getUsersForSidebar: ", error.message);
     res.status(500).json({ error: "Internal server error" });
@@ -81,6 +91,9 @@ export const sendMessage = async (req, res) => {
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }
+
+    // Отправляем событие об обновлении списка пользователей всем клиентам, передавая ID пользователя, которого нужно переместить
+    io.emit("updateUserList", { userId: senderId });
 
     res.status(201).json(newMessage);
   } catch (error) {

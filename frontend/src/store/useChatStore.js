@@ -91,11 +91,32 @@ export const useChatStore = create((set, get) => ({
   
       set({ users: updatedUsers });
     });
+
+    // Подписываемся на событие обновления списка пользователей
+    socket.on("updateUserList", ({ userId }) => {
+      // Получаем текущий список пользователей
+      const { users } = get();
+
+      // Находим пользователя, которого нужно переместить
+      const userToMove = users.find((user) => user._id === userId);
+
+      if (userToMove) {
+        // Создаем новый массив пользователей, помещая userToMove в начало
+        const updatedUsers = [
+          userToMove,
+          ...users.filter((user) => user._id !== userId),
+        ];
+
+        // Обновляем состояние users
+        set({ users: updatedUsers });
+      }
+    });
   },  
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
+    socket.off("updateUserList"); // Отписываемся от события
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
