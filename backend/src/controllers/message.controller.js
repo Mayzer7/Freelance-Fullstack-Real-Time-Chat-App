@@ -1,6 +1,5 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
-
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
@@ -112,6 +111,47 @@ export const sendMessage = async (req, res) => {
     res.status(201).json(newMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const markMessageAsRead = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const loggedInUserId = req.user._id;
+
+    // Находим сообщение
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    // Обновляем статус и время прочтения
+    if (message.receiverId.toString() === loggedInUserId.toString() && !message.isRead) {
+      message.isRead = true;
+      message.readAt = new Date();  // Устанавливаем время прочтения
+      await message.save(); // Сохраняем обновление в базе данных
+
+      // Отправляем уведомление через сокеты всем подключенным пользователям (отправитель и получатель)
+      const senderSocketId = getReceiverSocketId(message.senderId);
+      const receiverSocketId = getReceiverSocketId(message.receiverId);
+
+      // Проверяем, отправляем ли мы уведомление отправителю
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messageRead", { messageId, readAt: message.readAt });
+      }
+
+      // Отправляем уведомление получателю
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messageRead", { messageId, readAt: message.readAt });
+      }
+
+      res.status(200).json({ message: "Message marked as read" });
+    } else {
+      res.status(400).json({ message: "You cannot mark this message as read" });
+    }
+  } catch (error) {
+    console.log("Error in markMessageAsRead controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };

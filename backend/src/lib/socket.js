@@ -45,8 +45,28 @@ io.on("connection", (socket) => {
   });
 
   socket.on("newMessage", (newMessage) => {
-    // Отправляем событие 'newMessage' всем подключенным клиентам, кроме отправителя
+    // Отправляем новое сообщение всем, кроме отправителя
     socket.broadcast.emit("newMessage", newMessage);
+  });
+
+  // Событие для "прочитано"
+  socket.on("messageRead", async ({ messageId, receiverId }) => {
+    try {
+      // Обновляем статус сообщения как прочитанное в базе данных
+      await Message.findByIdAndUpdate(messageId, { isRead: true });
+
+      // Теперь уведомляем всех клиентов, кроме отправителя сообщения
+      const receiverSocketId = getReceiverSocketId(receiverId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messageRead", { messageId });
+      }
+      
+      // Отправляем всем другим пользователям, кто не является получателем
+      socket.broadcast.emit("messageRead", { messageId });
+
+    } catch (error) {
+      console.error("Error updating message read status: ", error.message);
+    }
   });
 
   socket.on("disconnect", async () => {

@@ -116,22 +116,37 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
+    socket.on("messageRead", ({ messageId, receiverId }) => {
+      // Обновляем статус сообщения как прочитанное
+      set((state) => ({
+        messages: state.messages.map((message) =>
+          message._id === messageId ? { ...message, isRead: true } : message
+        ),
+      }));
+
+      // Обновляем список пользователей
+      set((state) => ({
+        users: state.users.map((user) => {
+          if (user._id === receiverId) {
+            return { ...user, lastMessage: { ...user.lastMessage, isRead: true } };
+          }
+          return user;
+        }),
+      }));
+    });
+
     // Подписываемся на событие обновления списка пользователей
     socket.on("updateUserList", ({ userId }) => {
-      // Получаем текущий список пользователей
       const { users } = get();
 
-      // Находим пользователя, которого нужно переместить
       const userToMove = users.find((user) => user._id === userId);
 
       if (userToMove) {
-        // Создаем новый массив пользователей, помещая userToMove в начало
         const updatedUsers = [
           userToMove,
           ...users.filter((user) => user._id !== userId),
         ];
 
-        // Обновляем состояние users
         set({ users: updatedUsers });
       }
     });
@@ -141,6 +156,7 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
     socket.off("updateUserList"); // Отписываемся от события
+    socket.off("messageRead");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
@@ -148,7 +164,6 @@ export const useChatStore = create((set, get) => ({
   setMessages: (messages) => set({ messages }),
   setUsers: (users) => set({ users }),
 
-  // 👇 Добавляем печатает
   addTypingUser: (userId) =>
     set((state) => ({
       typingUsers: [...new Set([...state.typingUsers, userId])],
