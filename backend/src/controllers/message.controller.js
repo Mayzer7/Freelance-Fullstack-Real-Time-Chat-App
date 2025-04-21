@@ -23,9 +23,17 @@ export const getUsersForSidebar = async (req, res) => {
           .sort({ createdAt: -1 })
           .limit(1);
 
+        // Получаем количество непрочитанных сообщений
+        const unreadMessagesCount = await Message.countDocuments({
+          senderId: user._id,
+          receiverId: loggedInUserId,
+          isRead: false, // Добавляем условие для непрочитанных сообщений
+        });
+
         return {
           ...user.toObject(),
           lastMessage: lastMessage || null,
+          unreadMessagesCount: unreadMessagesCount, // Добавляем количество непрочитанных сообщений
         };
       })
     );
@@ -36,7 +44,7 @@ export const getUsersForSidebar = async (req, res) => {
       if (!a.lastMessage) return 1; // b выше, если у a нет сообщений
       if (!b.lastMessage) return -1; // a выше, если у b нет сообщений
 
-      return b.lastMessage.createdAt - a.lastMessage.createdAt; // Сортируем по убыванию даты
+      return new Date(b.lastMessage?.createdAt).getTime() - new Date(a.lastMessage?.createdAt).getTime(); // Сортируем по убыванию даты
     });
 
     res.status(200).json(usersWithLastMessage);
@@ -57,6 +65,12 @@ export const getMessages = async (req, res) => {
         { senderId: userToChatId, receiverId: myId },
       ],
     });
+
+    // Помечаем сообщения как прочитанные
+    await Message.updateMany(
+      { senderId: userToChatId, receiverId: myId, isRead: false },
+      { $set: { isRead: true } }
+    );
 
     res.status(200).json(messages);
   } catch (error) {

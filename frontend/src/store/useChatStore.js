@@ -21,13 +21,20 @@ export const useChatStore = create((set, get) => ({
     } finally {
       set({ isUsersLoading: false });
     }
-  },    
+  },
 
   getMessages: async (userId) => {
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
+
+      // После получения сообщений обновляем список пользователей, чтобы убрать индикатор
+      const { users } = get();
+      const updatedUsers = users.map((user) =>
+        user._id === userId ? { ...user, unreadMessagesCount: 0 } : user
+      );
+      set({ users: updatedUsers });
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
@@ -43,10 +50,10 @@ export const useChatStore = create((set, get) => ({
         messageData
       );
       const newMessage = res.data;
-  
+
       // Обновляем messages
       set({ messages: [...messages, newMessage] });
-  
+
       // Обновляем lastMessage у соответствующего пользователя
       const updatedUsers = users.map((user) => {
         if (
@@ -57,7 +64,7 @@ export const useChatStore = create((set, get) => ({
         }
         return user;
       });
-  
+
       set({ users: updatedUsers });
     } catch (error) {
       toast.error(error.response.data.message);
@@ -66,18 +73,10 @@ export const useChatStore = create((set, get) => ({
 
   subscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
-  
+
     socket.on("newMessage", (newMessage) => {
-      const { users, selectedUser, messages } = get();
-  
-      // Если сообщение связано с текущим диалогом, добавим его в сообщения
-      if (
-        selectedUser &&
-        (newMessage.senderId === selectedUser._id || newMessage.receiverId === selectedUser._id)
-      ) {
-        set({ messages: [...messages, newMessage] });
-      }
-  
+      const { users, selectedUser } = get();
+
       // Обновляем lastMessage у соответствующего пользователя в списке
       const updatedUsers = users.map((user) => {
         if (
@@ -88,8 +87,33 @@ export const useChatStore = create((set, get) => ({
         }
         return user;
       });
-  
+
       set({ users: updatedUsers });
+
+      // Если сообщение связано с текущим диалогом, добавим его в сообщения
+      if (
+        selectedUser &&
+        (newMessage.senderId === selectedUser._id || newMessage.receiverId === selectedUser._id)
+      ) {
+        set((state) => ({
+          messages: [...state.messages, newMessage],
+          users: updatedUsers,
+        }));
+      } else {
+        // Обновляем количество непрочитанных сообщений для отправителя
+        set((state) => ({
+          users: state.users.map((user) => {
+            if (user._id === newMessage.senderId) {
+              return {
+                ...user,
+                unreadMessagesCount: (user.unreadMessagesCount || 0) + 1,
+                lastMessage: newMessage,
+              };
+            }
+            return user;
+          }),
+        }));
+      }
     });
 
     // Подписываемся на событие обновления списка пользователей
@@ -111,7 +135,7 @@ export const useChatStore = create((set, get) => ({
         set({ users: updatedUsers });
       }
     });
-  },  
+  },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;

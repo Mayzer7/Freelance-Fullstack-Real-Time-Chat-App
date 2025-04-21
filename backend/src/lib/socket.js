@@ -3,6 +3,7 @@ import http from "http";
 import express from "express";
 
 import User from "../models/user.model.js";
+import Message from "../models/message.model.js"; // Импортируем модель Message
 
 const app = express();
 const server = http.createServer(app);
@@ -35,7 +36,7 @@ io.on("connection", (socket) => {
       io.to(receiverSocketId).emit("userTyping", { senderId: userId });
     }
   });
-  
+
   socket.on("stopTyping", ({ receiverId }) => {
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
@@ -43,12 +44,17 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("newMessage", (newMessage) => {
+    // Отправляем событие 'newMessage' всем подключенным клиентам, кроме отправителя
+    socket.broadcast.emit("newMessage", newMessage);
+  });
+
   socket.on("disconnect", async () => {
     console.log("A user disconnected", socket.id);
-  
+
     delete userSocketMap[userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
-  
+
     // ✅ Обновляем lastSeen в MongoDB
     if (userId) {
       try {

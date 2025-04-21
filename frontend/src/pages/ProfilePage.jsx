@@ -1,22 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Camera, Mail, User, LogOut } from "lucide-react";
+import { Camera, Mail, User, LogOut, BarChart } from "lucide-react";
+import { getTasks } from "../api/posts";
 
 const ProfilePage = () => {
   const { logout, authUser, isUpdatingProfile, updateProfile } = useAuthStore();
   const [selectedImg, setSelectedImg] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState(0);
+  const [openTasks, setOpenTasks] = useState(0);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const allTasks = await getTasks();
+        // Filter tasks created by the current user
+        const userTasks = allTasks.filter(task => task.author._id === authUser._id);
+        setTasks(userTasks);
+
+        // Calculate completed and open tasks
+        const completed = userTasks.filter(task => task.status === 'completed').length;
+        const open = userTasks.filter(task => task.status === 'open').length;
+
+        setCompletedTasks(completed);
+        setOpenTasks(open);
+      } catch (error) {
+        console.error("Failed to fetch tasks:", error);
+      }
+    };
+
+    if (authUser) {
+      fetchTasks();
+    }
+  }, [authUser]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     setSelectedImg(URL.createObjectURL(file)); // чтобы отобразить превью
     await updateProfile(file); // передаём сам файл
   };
 
   return (
     <div className="h-screen pt-20">
-      <div className="max-w-2xl mx-auto p-4 py-8">
+      <div className="max-w-3xl mx-auto p-4 py-8">
         <div className="bg-base-300 rounded-xl p-6 space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-semibold ">Profile</h1>
@@ -73,6 +101,27 @@ const ProfilePage = () => {
                 Email Address
               </div>
               <p className="px-4 py-2.5 bg-base-200 rounded-lg border">{authUser?.email}</p>
+            </div>
+          </div>
+
+          {/* User Statistics Section */}
+          <div className="mt-6 bg-base-300 rounded-xl p-6">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <BarChart className="w-5 h-5" /> User Statistics
+            </h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between py-2 border-b border-zinc-700">
+                <span>Total Tasks Created</span>
+                <span>{tasks.length}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-zinc-700">
+                <span>Tasks Completed</span>
+                <span>{completedTasks}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span>Tasks Open</span>
+                <span>{openTasks}</span>
+              </div>
             </div>
           </div>
 

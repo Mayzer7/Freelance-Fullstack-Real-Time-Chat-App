@@ -56,7 +56,7 @@ const Sidebar = () => {
             <button
               key={user._id}
               onClick={() => setSelectedUser(user)}
-              className={`w-full p-3 flex items-center gap-3 hover:bg-base-300 transition-colors ${
+              className={`w-full p-3 flex items-center gap-3 hover:bg-base-300 transition-colors relative ${
                 selectedUser?._id === user._id ? "bg-base-300 ring-1 ring-base-300" : ""
               }`}
             >
@@ -72,7 +72,7 @@ const Sidebar = () => {
               </div>
 
               <div className="hidden lg:block text-left min-w-0">
-                <div className="font-medium truncate">{user.fullName}</div>
+                <div className="font-medium">{user.fullName}</div>
                 <div className="text-sm text-zinc-400 truncate max-w-[150px]">
                   {isTyping
                     ? "Печатает..."
@@ -80,7 +80,12 @@ const Sidebar = () => {
                     ? user.lastMessage.text || "📷 Фото"
                     : onlineUsers.includes(user._id)
                     ? "Онлайн"
-                    : "Офлайн"}
+                    : "Офлайн"
+                  }
+
+                  {user.unreadMessagesCount > 0 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full" />
+                  )}
                 </div>
               </div>
             </button>
