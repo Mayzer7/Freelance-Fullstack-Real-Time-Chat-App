@@ -2,16 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+body,
+label {
     cursor: url('../public/cursor/default-cursor.svg') 0 0, auto;
 }
   
 /* Кастомный pointer-курсор для кликабельных элементов */
 a,
-button, .btn {
+button, 
+.btn, .cur-pointer {
     cursor: url('../public/cursor/pointer-cursos.svg') 0 0, auto;   
 }
 
-input {
+input, textarea {
     cursor: url('../public/cursor/input-cursor.svg') 0 0, auto;   
 }
