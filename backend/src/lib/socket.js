@@ -3,7 +3,7 @@ import http from "http";
 import express from "express";
 
 import User from "../models/user.model.js";
-import Message from "../models/message.model.js"; // Импортируем модель Message
+import Message from "../models/message.model.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -18,8 +18,7 @@ export function getReceiverSocketId(userId) {
   return userSocketMap[userId];
 }
 
-// used to store online users
-const userSocketMap = {}; // {userId: socketId}
+const userSocketMap = {};
 
 io.on("connection", (socket) => {
   console.log("A user connected", socket.id);
@@ -27,7 +26,6 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) userSocketMap[userId] = socket.id;
 
-  // io.emit() is used to send events to all the connected clients
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("typing", ({ receiverId }) => {
@@ -45,27 +43,31 @@ io.on("connection", (socket) => {
   });
 
   socket.on("newMessage", (newMessage) => {
-    // Отправляем новое сообщение всем, кроме отправителя
     socket.broadcast.emit("newMessage", newMessage);
   });
 
-  // Событие для "прочитано"
-  socket.on("messageRead", async ({ messageId, receiverId }) => {
+  socket.on("messageRead", async ({ messageId }) => {
     try {
-      // Обновляем статус сообщения как прочитанное в базе данных
-      await Message.findByIdAndUpdate(messageId, { isRead: true });
-
-      // Теперь уведомляем всех клиентов, кроме отправителя сообщения
-      const receiverSocketId = getReceiverSocketId(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageRead", { messageId });
+      const message = await Message.findById(messageId);
+      if (!message) {
+        console.error("Message not found:", messageId);
+        return;
       }
-      
-      // Отправляем всем другим пользователям, кто не является получателем
-      socket.broadcast.emit("messageRead", { messageId });
 
+      if (!message.isRead) {
+        message.isRead = true;
+        message.readAt = new Date();
+        await message.save();
+
+        io.emit("messageRead", { 
+          messageId: message._id.toString(),
+          readAt: message.readAt 
+        });
+        
+        console.log(`Message ${messageId} marked as read`);
+      }
     } catch (error) {
-      console.error("Error updating message read status: ", error.message);
+      console.error("Error updating message read status:", error.message);
     }
   });
 
@@ -75,12 +77,11 @@ io.on("connection", (socket) => {
     delete userSocketMap[userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-    // ✅ Обновляем lastSeen в MongoDB
     if (userId) {
       try {
         await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
       } catch (error) {
-        console.error("Ошибка при обновлении lastSeen:", error.message);
+        console.error("Error updating lastSeen:", error.message);
       }
     }
   });

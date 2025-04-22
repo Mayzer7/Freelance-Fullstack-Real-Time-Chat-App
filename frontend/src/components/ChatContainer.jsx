@@ -6,7 +6,7 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
-import axios from "axios"; // Добавляем axios для отправки запроса о прочтении
+import axios from "axios";
 
 const ChatContainer = () => {
   const {
@@ -20,62 +20,96 @@ const ChatContainer = () => {
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
+  const containerRef = useRef(null);
+  const observerRef = useRef(null);
+  const readMessagesRef = useRef(new Set()); // Track already processed messages
 
-  // Обработчик прокрутки, который будет помечать сообщения как прочитанные
-  const handleScroll = () => {
-    const messageElements = document.querySelectorAll('.chat');
-    messageElements.forEach((message) => {
-      const rect = message.getBoundingClientRect();
-      if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-        // Помечаем сообщение как прочитанное, если оно видно
-        if (!message.dataset.read) {
-          message.dataset.read = 'true';
-          markMessageAsRead(message.dataset.messageId);
-        }
-      }
-    });
-  };
-
+  // Initial message loading and socket subscription
   useEffect(() => {
     getMessages(selectedUser._id);
-    subscribeToMessages();
+    
+    const handleNewMessage = (newMessage) => {
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    };
+    
+    const handleMessageRead = ({ messageId }) => {
+      setMessages((prevMessages) => 
+        prevMessages.map((message) => 
+          message._id === messageId ? { ...message, isRead: true } : message
+        )
+      );
+    };
+    
+    subscribeToMessages(handleNewMessage, handleMessageRead);
+    
+    return () => {
+      unsubscribeFromMessages();
+      readMessagesRef.current.clear();
+    };
+  }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages, setMessages]);
 
-    return () => unsubscribeFromMessages();
-  }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
-
+  // Scroll to bottom on new messages
   useEffect(() => {
-    if (messageEndRef.current && messages) {
+    if (messageEndRef.current && messages?.length > 0) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  const markMessageAsRead = (messageId) => {
-    // Отправляем на сервер информацию о прочтении сообщения
-    axios.post(`/messages/markAsRead/${messageId}`).then(() => {
-      // Здесь можно обновить состояние на фронте, если необходимо
-    });
-  };
-
-  // Подписка на событие, которое обновляет статус прочтения сообщений через сокет
+  // Setup intersection observer for message visibility
   useEffect(() => {
-    const handleMessageRead = (messageId) => {
-      // Обновляем статус прочтения на фронте
-      const updatedMessages = messages.map((message) => 
-        message._id === messageId ? { ...message, isRead: true } : message
-      );
-      // Обновляем состояние
-      setMessages(updatedMessages);
+    // Clear the set when messages change
+    readMessagesRef.current.clear();
+    
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.dataset.messageId;
+            const senderId = entry.target.dataset.senderId;
+            const isRead = entry.target.dataset.read === 'true';
+            
+            // Only process if: 
+            // 1. Message is from another user
+            // 2. Message is not already read
+            // 3. Message hasn't been processed in this session
+            if (
+              messageId && 
+              senderId !== authUser._id && 
+              !isRead && 
+              !readMessagesRef.current.has(messageId)
+            ) {
+              // Mark as processed to avoid duplicate requests
+              readMessagesRef.current.add(messageId);
+              entry.target.dataset.read = 'true';
+              markMessageAsRead(messageId);
+            }
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    const messageElements = document.querySelectorAll('[data-message-id]');
+    messageElements.forEach(message => observerRef.current.observe(message));
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
     };
+  }, [messages, authUser._id]);
 
-    subscribeToMessages(handleMessageRead);
-
-    return () => unsubscribeFromMessages();
-  }, [messages, subscribeToMessages, unsubscribeFromMessages]);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const markMessageAsRead = async (messageId) => {
+    try {
+      await axios.post(`/messages/markAsRead/${messageId}`);
+      // Note: We don't need to manually update the UI here,
+      // as the socket will emit the messageRead event which will update all clients
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      // Remove from processed set if request fails to allow retry
+      readMessagesRef.current.delete(messageId);
+    }
+  };
 
   if (isMessagesLoading) {
     return (
@@ -88,44 +122,58 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div className="flex-1 flex flex-col overflow-auto" ref={containerRef}>
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message._id}
-            className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
-            data-message-id={message._id}
-            data-read={message.isRead ? 'true' : 'false'}
-            ref={messageEndRef}
-          >
-            <div className="chat-image avatar">
-              <div className="size-10 rounded-full border">
-                <img
-                  src={message.senderId === authUser._id ? authUser.profilePic || "/avatar.png" : selectedUser.profilePic || "/avatar.png"}
-                  alt="profile pic"
-                />
+        {messages.map((message, index) => {
+          const isLastMessage = index === messages.length - 1;
+          const isSender = message.senderId === authUser._id;
+          
+          return (
+            <div
+              key={message._id}
+              className={`chat ${isSender ? "chat-end" : "chat-start"}`}
+              data-message-id={message._id}
+              data-sender-id={message.senderId}
+              data-read={message.isRead ? 'true' : 'false'}
+              ref={isLastMessage ? messageEndRef : null}
+            >
+              <div className="chat-image avatar">
+                <div className="size-10 rounded-full border">
+                  <img
+                    src={isSender ? authUser.profilePic || "/avatar.png" : selectedUser.profilePic || "/avatar.png"}
+                    alt="profile pic"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="chat-header mb-1">
-              <time className="text-xs opacity-50 ml-1">
-                {formatMessageTime(message.createdAt)}
-              </time>
-            </div>
-            <div className="chat-bubble flex flex-col">
-              {message.image && (
-                <img
-                  src={message.image}
-                  alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
-                />
+              <div className="chat-header mb-1">
+                <time className="text-xs opacity-50 ml-1">
+                  {formatMessageTime(message.createdAt)}
+                </time>
+              </div>
+              <div className="chat-bubble flex flex-col">
+                {message.image && (
+                  <img
+                    src={message.image}
+                    alt="Attachment"
+                    className="sm:max-w-[200px] rounded-md mb-2"
+                  />
+                )}
+                {message.text && <p>{message.text}</p>}
+              </div>
+              {isSender && (
+                <div className="chat-footer text-xs mt-1">
+                  {message.isRead ? (
+                    <span className="text-blue-500 font-medium">Просмотрено</span>
+                  ) : (
+                    <span className="text-gray-400">Отправлено</span>
+                  )}
+                </div>
               )}
-              {message.text && <p>{message.text}</p>}
-              {message.isRead && <span className="text-xs text-gray-500">Просмотрено</span>}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <MessageInput />
