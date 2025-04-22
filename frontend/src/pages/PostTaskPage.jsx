@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Code2, Plus, Search, User, Palette } from 'lucide-react';
-import { Link } from "react-router-dom";
+import { Code2, Plus, Search, User, Palette, MessageSquare } from 'lucide-react';
+import { Link, useNavigate } from "react-router-dom";
 import { TaskModal } from '../components/TaskModal';
 import { useThemeStore } from "../store/useThemeStore";
 import { THEMES } from "../constants";
 import { getTasks } from '../api/posts';
+import { useChatStore } from '../store/useChatStore';
 
 const freelancers = [
   {
@@ -37,6 +38,8 @@ function PostTask() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const { theme, setTheme } = useThemeStore();
+  const { setSelectedUser } = useChatStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadTasks();
@@ -67,6 +70,11 @@ function PostTask() {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const handleWriteMessage = (user) => {
+    setSelectedUser(user);
+    navigate('/messanger');
   };
 
   return (
@@ -198,26 +206,35 @@ function PostTask() {
         ) : (
           tasks.map((task) => (
             <div key={task._id} className="bg-base-200 p-6 rounded-xl mb-8">
-              <div className="flex items-center mb-4">
-                {task.author.profilePic ? (
-                  <img 
-                    src={task.author.profilePic}
-                    alt={task.author.fullName} 
-                    className="w-10 h-10 rounded-full mr-4 object-cover" 
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-base-300 rounded-full mr-4 flex items-center justify-center">
-                    {task.author.fullName[0].toUpperCase()}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center">
+                  {task.author.profilePic ? (
+                    <img 
+                      src={task.author.profilePic}
+                      alt={task.author.fullName} 
+                      className="w-10 h-10 rounded-full mr-4 object-cover" 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-base-300 rounded-full mr-4 flex items-center justify-center">
+                      {task.author.fullName[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <Link to={`/profile/${task.author._id}`} className="hover:text-primary">
+                      <span className="font-semibold">{task.author.fullName}</span>
+                    </Link>
+                    <p className="text-sm text-base-content/70">
+                      {formatDate(task.createdAt)}
+                    </p>
                   </div>
-                )}
-                <div>
-                  <Link to={`/profile/${task.author._id}`} className="hover:text-primary">
-                    <span className="font-semibold">{task.author.fullName}</span>
-                  </Link>
-                  <p className="text-sm text-base-content/70">
-                    {formatDate(task.createdAt)}
-                  </p>
                 </div>
+                <button
+                  className="btn btn-ghost btn-sm rounded-full"
+                  onClick={() => handleWriteMessage(task.author)}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Написать сообщение
+                </button>
               </div>
               <h2 className="text-2xl font-bold mb-6">{task.title}</h2>
               <p className="text-base-content/70 mb-6">{task.description}</p>

@@ -30,7 +30,7 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
       });
       onClose();
     } catch (error) {
-      setError('Failed to create task. Please try again.');
+      setError(error.response?.data?.message || 'Failed to create task. Please try again.');
       console.error('Error creating task:', error);
     } finally {
       setIsSubmitting(false);
