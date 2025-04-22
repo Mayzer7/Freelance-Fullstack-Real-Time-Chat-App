@@ -11,7 +11,9 @@ const Sidebar = () => {
     selectedUser,
     setSelectedUser,
     isUsersLoading,
-    typingUsers, // 💡 ДОБАВЛЕНО
+    typingUsers,
+    subscribeToMessages, // добавляем подписку тут
+    unsubscribeFromMessages,
   } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
@@ -19,7 +21,11 @@ const Sidebar = () => {
 
   useEffect(() => {
     getUsers();
-  }, [getUsers]);
+    subscribeToMessages(); // подписка на сокеты
+    return () => {
+      unsubscribeFromMessages();
+    };
+  }, []);
 
   const filteredUsers = showOnlineOnly
     ? users.filter((user) => onlineUsers.includes(user._id))
