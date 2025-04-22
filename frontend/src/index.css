@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+    cursor: url('../public/cursor/default-cursor.svg') 0 0, auto;
+}
+  
+/* Кастомный pointer-курсор для кликабельных элементов */
+a,
+button, .btn {
+    cursor: url('../public/cursor/pointer-cursos.svg') 0 0, auto;   
+}
+
+input {
+    cursor: url('../public/cursor/input-cursor.svg') 0 0, auto;   
+}
