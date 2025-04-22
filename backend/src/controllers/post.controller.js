@@ -17,7 +17,7 @@ export const getPosts = async (req, res) => {
 // Create new post
 export const createPost = async (req, res) => {
   try {
-    const { title, description, budget, deadline, skills } = req.body;
+    const { title, description, budget, deadline, skills, category } = req.body;
     
     const newPost = new Post({
       title,
@@ -25,7 +25,8 @@ export const createPost = async (req, res) => {
       budget,
       deadline,
       skills,
-      author: req.user._id // Will be set by auth middleware
+      author: req.user._id, // Will be set by auth middleware
+      category // Added category
     });
 
     await newPost.save();

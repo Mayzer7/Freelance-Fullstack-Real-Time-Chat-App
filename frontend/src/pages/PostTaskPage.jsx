@@ -31,26 +31,46 @@ const freelancers = [
   }
 ];
 
+const ALL_CATEGORIES = [
+  "Дизайн",
+  "Разработка",
+  "Маркетинг",
+  "Менеджмент",
+  "Копирайтинг",
+  "Переводы",
+  "Фотография",
+  "Видеомонтаж",
+  "3D-моделирование",
+  "Другое"
+];
+
 function PostTask() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [showThemes, setShowThemes] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(''); // Added state for selected category
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const { theme, setTheme } = useThemeStore();
   const { setSelectedUser } = useChatStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [selectedCategory]); // Reload tasks when category changes
 
   const loadTasks = async () => {
     try {
       setIsLoading(true);
       setError('');
       const tasksData = await getTasks();
-      setTasks(tasksData);
+      // Apply category filter
+      const filteredTasks = selectedCategory
+        ? tasksData.filter(task => task.category === selectedCategory)
+        : tasksData;
+      setTasks(filteredTasks);
     } catch (error) {
       console.error('Failed to load tasks:', error);
       setError('Failed to load tasks. Please try again later.');
@@ -76,6 +96,10 @@ function PostTask() {
     setSelectedUser(user);
     navigate('/messanger');
   };
+
+  const filteredCategories = ALL_CATEGORIES.filter(category =>
+    category.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-base-100 pt-16">
@@ -179,12 +203,59 @@ function PostTask() {
                 className="input input-bordered w-full pl-12"
               />
             </div>
-            <select className="select select-bordered">
-              <option value="">Все категории</option>
-              <option value="design">Дизайн</option>
-              <option value="development">Разработка</option>
-              <option value="marketing">Маркетинг</option>
-            </select>
+            {/* Category Dropdown */}
+            <div className="relative">
+              <button
+                className="select select-bordered flex items-center"
+                onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              >
+                {selectedCategory || "Все категории"}
+              </button>
+              {isCategoryDropdownOpen && (
+                <div className="absolute left-0 mt-1 w-48 bg-base-100 rounded-md shadow-lg z-10">
+                  <div className="py-1">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-base-content/50 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Поиск категории..."
+                        className="input input-bordered w-full pl-6 text-sm py-1 h-8"
+                        value={categorySearchTerm}
+                        onChange={(e) => setCategorySearchTerm(e.target.value)}
+                      />
+                    </div>
+                    {filteredCategories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setIsCategoryDropdownOpen(false);
+                          setCategorySearchTerm('');
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm hover:bg-base-200"
+                      >
+                        {category}
+                      </button>
+                    ))}
+                    {filteredCategories.length === 0 && (
+                      <div className="px-4 py-2 text-sm text-base-content/70">
+                        Категория не найдена
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedCategory('');
+                        setIsCategoryDropdownOpen(false);
+                        setCategorySearchTerm('');
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-base-200"
+                    >
+                      Все категории
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

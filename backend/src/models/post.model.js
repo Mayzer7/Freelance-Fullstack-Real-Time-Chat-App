@@ -30,6 +30,11 @@ const postSchema = new mongoose.Schema(
       type: String,
       enum: ['open', 'in_progress', 'completed'],
       default: 'open'
+    },
+    category: { // Added category field
+      type: String,
+      enum: ['design', 'development', 'marketing', 'other'],
+      default: 'other'
     }
   },
   { timestamps: true }

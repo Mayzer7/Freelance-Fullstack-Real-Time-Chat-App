@@ -2,6 +2,19 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { createTask } from '../api/posts';
 
+const ALL_CATEGORIES = [
+  "Дизайн",
+  "Разработка",
+  "Маркетинг",
+  "Менеджмент",
+  "Копирайтинг",
+  "Переводы",
+  "Фотография",
+  "Видеомонтаж",
+  "3D-моделирование",
+  "Другое"
+];
+
 export function TaskModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -9,6 +22,7 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
     budget: 0,
     deadline: '',
     skills: [],
+    category: '', // Added category field
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +41,7 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
         budget: 0,
         deadline: '',
         skills: [],
+        category: '', // Reset category after submit
       });
       onClose();
     } catch (error) {
@@ -124,6 +139,23 @@ export function TaskModal({ isOpen, onClose, onSubmit }) {
               onChange={(e) => setFormData({ ...formData, skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
               placeholder="Например: React, TypeScript, Node.js"
             />
+          </div>
+
+          {/* Category Selection */}
+          <div>
+            <label className="block text-sm font-medium text-base-content/70 mb-1">
+              Категория
+            </label>
+            <select
+              className="select select-bordered w-full"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            >
+              <option value="">Выберите категорию</option>
+              {ALL_CATEGORIES.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
           </div>
 
           <button
