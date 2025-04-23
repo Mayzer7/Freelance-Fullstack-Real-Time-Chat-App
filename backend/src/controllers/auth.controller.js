@@ -4,9 +4,9 @@ import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { fullName, email, password, username } = req.body;
   try {
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || !username) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -14,9 +14,24 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    const user = await User.findOne({ email });
+    if (username.length < 3) {
+      return res.status(400).json({ message: "Username must be at least 3 characters" });
+    }
 
-    if (user) return res.status(400).json({ message: "Email already exists" });
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores" });
+    }
+
+    const user = await User.findOne({ $or: [{ email }, { username }] });
+
+    if (user) {
+      if (user.email === email) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      if (user.username === username) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -24,6 +39,7 @@ export const signup = async (req, res) => {
     const newUser = new User({
       fullName,
       email,
+      username,
       password: hashedPassword,
     });
 
@@ -36,6 +52,7 @@ export const signup = async (req, res) => {
         _id: newUser._id,
         fullName: newUser.fullName,
         email: newUser.email,
+        username: newUser.username,
         profilePic: newUser.profilePic,
       });
     } else {
@@ -67,6 +84,7 @@ export const login = async (req, res) => {
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
+      username: user.username,
       profilePic: user.profilePic,
     });
   } catch (error) {
@@ -122,6 +140,38 @@ export const checkAuth = (req, res) => {
     res.status(200).json(req.user);
   } catch (error) {
     console.log("Error in checkAuth controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const getUserByUsername = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.log("Error in getUserByUsername controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.log("Error in getUserById controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

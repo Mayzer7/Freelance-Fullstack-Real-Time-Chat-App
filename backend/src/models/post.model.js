@@ -33,7 +33,7 @@ const postSchema = new mongoose.Schema(
     },
     category: { // Added category field
       type: String,
-      enum: ['design', 'development', 'marketing', 'other'],
+      enum: ['Дизайн', 'development', 'marketing', 'other'],
       default: 'other'
     }
   },

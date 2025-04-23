@@ -291,7 +291,10 @@ function PostTask() {
                     </div>
                   )}
                   <div>
-                    <Link to={`/profile/${task.author._id}`} className="hover:text-primary">
+                    <Link 
+                      to={task.author.username ? `/profile/${task.author.username}` : `/profile/${task.author._id}`} 
+                      className="hover:text-primary"
+                    >
                       <span className="font-semibold">{task.author.fullName}</span>
                     </Link>
                     <p className="text-sm text-base-content/70">

@@ -4,7 +4,7 @@ import Post from "../models/post.model.js";
 export const getPosts = async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate('author', 'fullName profilePic')
+      .populate('author', 'fullName profilePic username')
       .sort({ createdAt: -1 });
     
     res.status(200).json(posts);
@@ -32,7 +32,7 @@ export const createPost = async (req, res) => {
     await newPost.save();
 
     const populatedPost = await Post.findById(newPost._id)
-      .populate('author', 'fullName profilePic');
+      .populate('author', 'fullName profilePic username');
 
     res.status(201).json(populatedPost);
   } catch (error) {
@@ -45,7 +45,7 @@ export const createPost = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate('author', 'fullName profilePic');
+      .populate('author', 'fullName profilePic username');
     
     if (!post) {
       return res.status(404).json({ error: "Post not found" });

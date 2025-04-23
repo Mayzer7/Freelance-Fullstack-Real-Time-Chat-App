@@ -12,6 +12,7 @@ const SignUpPage = () => {
     fullName: "",
     email: "",
     password: "",
+    username: "",
   });
 
   const { signup, isSigningUp } = useAuthStore();
@@ -22,6 +23,9 @@ const SignUpPage = () => {
     if (!/\S+@\S+\.\S+/.test(formData.email)) return toast.error("Invalid email format");
     if (!formData.password) return toast.error("Password is required");
     if (formData.password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!formData.username.trim()) return toast.error("Username is required");
+    if (formData.username.length < 3) return toast.error("Username must be at least 3 characters");
+    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) return toast.error("Username can only contain letters, numbers, and underscores");
 
     return true;
   };
@@ -74,6 +78,24 @@ const SignUpPage = () => {
 
             <div className="form-control">
               <label className="label">
+                <span className="label-text font-medium">Username</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="size-5 text-base-content/40" />
+                </div>
+                <input
+                  type="text"
+                  className={`input input-bordered w-full pl-10`}
+                  placeholder="johndoe"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="form-control">
+              <label className="label">
                 <span className="label-text font-medium">Email</span>
               </label>
               <div className="relative">
@@ -89,6 +111,7 @@ const SignUpPage = () => {
                 />
               </div>
             </div>
+
 
             <div className="form-control">
               <label className="label">

@@ -7,6 +7,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import MainPage from "./pages/MainPage";
 import PostTaskPage from "./pages/PostTaskPage";
+import PublicProfilePage from "./pages/PublicProfilePage";
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore";
@@ -46,6 +47,7 @@ const App = () => {
         <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+        <Route path="/profile/:username" element={<PublicProfilePage />} />
         <Route path="/post-task" element={authUser ? <PostTaskPage /> : <Navigate to="/login" />} />
       </Routes>
 
