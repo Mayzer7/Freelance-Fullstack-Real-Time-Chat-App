@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, User, MessageCircle, Trophy, PencilLine, ClipboardList } from "lucide-react";
+import { LogOut, MessageSquare, Settings, User, MessageCircle, Trophy, PencilLine, ClipboardList, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
@@ -74,6 +74,16 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {authUser && (
+              <Link 
+                to="/balance" 
+                className="flex items-center gap-2 mr-2 px-3 py-1.5 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
+              >
+                <Wallet className="w-4 h-4 text-primary" />
+                <span className="font-medium">{authUser.balance || 0} ₽</span>
+              </Link>
+            )}
+
             <Link to={"/post-task"} className={`btn btn-sm gap-2 transition-colors`}>
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Найти Работу</span>

@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    balance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     lastSeen: {
       type: Date,
       default: null,
