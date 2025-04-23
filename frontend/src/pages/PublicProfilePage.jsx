@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Camera, Mail, User, BarChart } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Camera, Mail, User, BarChart, MessageSquare } from "lucide-react";
 import { getTasks } from "../api/posts";
 import { axiosInstance } from "../lib/axios";
+import { useChatStore } from "../store/useChatStore";
 
 const PublicProfilePage = () => {
   const { username } = useParams();
+  const navigate = useNavigate();
+  const { setSelectedUser } = useChatStore();
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompletedTasks] = useState(0);
@@ -50,6 +53,11 @@ const PublicProfilePage = () => {
     }
   }, [username]);
 
+  const handleWriteMessage = () => {
+    setSelectedUser(user);
+    navigate('/messanger');
+  };
+
   if (isLoading) {
     return (
       <div className="h-screen pt-20 flex items-center justify-center">
@@ -87,6 +95,13 @@ const PublicProfilePage = () => {
                 className="size-32 rounded-full object-cover border-4"
               />
             </div>
+            <button
+              onClick={handleWriteMessage}
+              className="btn btn-primary gap-2"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Написать сообщение
+            </button>
           </div>
 
           <div className="space-y-6">
